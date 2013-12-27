@@ -1,0 +1,22 @@
+World Country and Island Polygons-Detailed-SSIB  Central America & Caribbean polygons
+
+   The most accurate known worldwide dataset insofar as international sovereignty, incl. islands of all sizes, these 12 polygon shapefiles use the Small Scale International Boundaries (SSIB) dataset which is not as accurate in most places as the 7 Large Scale International Boundaries (LSIB) polyline shapefiles also posted on this site.  
+
+    The boundary lines and sovereignty designations were produced by the Office of the Geographer of the U.S. Department of State (along with colleagues in the UK and in other US agencies.)  Of course, numerous interpretations of disputed area sovereignty exist and may conflict with parts of this dataset.
+
+    For coastlines and islands, a slightly modified version four of World Vector Shoreline (WVS) at "1:250,000 scale" (National-Geospatial Intelligence Agency) was utilized. Especially in higher latitudes, it may have shifts up to or slightly exceeding 1 km from correct locations.
+
+    The dataset was last updated in March 2009.  Twelve polygon shapefiles together comprise the entire world:    1) Antarctica_&_Oceania   2) Indonesia_region   3) East_&_South_Asia    4) North_Asia     5) Southwest_Asia_&_Southern_Europe     6)  Northern_Europe   7) Africa     8) South_America    9) Central_America_&_Caribbean    10) USA   11) Canada_mainland_&_northern_islands    12) Other Canada islands.   
+
+    Users are encouraged to submit feedback, .shp, and/or .kml files;  contact the Office of the Geographer and Global Issues, Rm. 6510-INR/GGI/GIU, US Dept. of State, 2201 C St. NW, Washington, DC 20520.
+
+
+
+Attributes:
+CC: Cc -  Country codes are from the U.S. Federal Information Processing Standards (FIPS) version 10-4.  
+NAME: Name - All UPPER CASE letters denote independent states; lower case letters denote dependencies and areas of special sovereignty.
+
+
+REGION: Region - 
+
+exported on Wed May 30 16:53:16 -0400 2012

@@ -1,0 +1,26 @@
+Administrative Boundaries - First Level - Global
+
+The sub Country Administrative Units 1998 GeoDataset represents a small-scale political map of the world. The data are generalized and were designed for display at scales to about 1:10,000,000. The data were generalized from ESRI's ArcWorld Supplement Map data. Country codes are from U.S. Federal Information Processing Standards (FIPS) version 10-4.
+ 
+Purpose:
+World sub Country Administrative Units represent 2605 first level administrative units such as states and provinces with 14 descriptive fields. level
+
+Last Updated 04/2002
+
+Attributes:
+FIPS_ADMIN: Fips Admin - 
+COLOR_MAP: Color Map - 
+GMI_ADMIN: Gmi Admin - 
+FIPS_CNTRY: Fips Cntry - 
+POP_ADMIN: Pop Admin - 
+CONTINENT: Continent - 
+CNTRY_NAME: Cntry Name - 
+ADMIN_NAME: Admin Name - 
+SQKM_ADMIN: Sqkm Admin - 
+TYPE_ENG: Type Eng - 
+GMI_CNTRY: Gmi Cntry - 
+REGION: Region - 
+TYPE_LOC: Type Loc - 
+SQMI_ADMIN: Sqmi Admin - 
+
+exported on Wed Dec 28 18:53:20 -0500 2011
