@@ -1,5 +1,5 @@
 *! worldstat: Visualising the state of world development
-*! Version 1.2.0: 2012/10/27
+*! Version 2.3.1: 2013/02/20
 *! Author: Damian C. Clarke 
 *! Department of Economics
 *! The University of Oxford
@@ -21,14 +21,15 @@ program define worldstat
 								SName(string)	///
 								CName			///
 								MAPonly			///
+								condition(string) ///
 						]
 
 	if length("`preserve'") != 0 {
 		tempfile init
 		cap save `init', replace
 	}
+
 	clear
-	dis "Editing version"
 
 ********************************************************************************
 *** TIME DATA
@@ -41,12 +42,9 @@ program define worldstat
 		local year 2010
 	}
 
-
 ********************************************************************************
-*** CHECK FOR ado's, LINK TO MAP DATA
+*** CHECK FOR ado's
 ********************************************************************************
-	webuse set "http://users.ox.ac.uk/~ball3491/"
-
 	di in green "worldstat is built using the functionality of the module wbopendata." 
 	di in green "checking {cmd:wbopendata} consistency and verifying not already installed..."
 	foreach req in spmap wbopendata {
@@ -61,69 +59,93 @@ program define worldstat
 ********************************************************************************
 	// Places
 	if "`place'"=="Europe"|"`place'"=="europe" {
-		local cond if REGION==150
+		if length("`condition'") != 0 local cond `condition'&REGION==150
+		else local cond if REGION==150
 		local pname Europe
-		local coords Europe_coords
+		local coords europe_coords
 		local csize 2
 	}
 	else if "`place'"=="Asia"|"`place'"=="asia" {
-		local cond if REGION==142
+		if length("`condition'") != 0 local cond `condition'&REGION==142
+		else local cond if REGION==142
 		local pname Asia
 		local coords world_coords
 		local csize 1.5
 		}
 	else if "`place'"=="America"|"`place'"=="america" {
-		local cond if SUBREGION==5 | SUBREGION==29| SUBREGION==13
+		if length("`condition'") != 0 {
+			local cond `condition'&(SUBREGION==5 | SUBREGION==29| SUBREGION==13)
+		}
+		else local cond if SUBREGION==5 | SUBREGION==29| SUBREGION==13
 		local pname Latin America
 		local coords world_coords
 		local csize 2
 	}
 	else if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica" {
-		local cond if SUBREGION==5
+		if length("`condition'") != 0 local cond `condition'&SUBREGION==5
+		else local cond if SUBREGION==5
 		local pname South America
 		local coords world_coords
 		local csize 2.5
 	}
 	else if "`place'"=="Oceania"|"`place'"=="oceania" {
-		local cond if REGION==9
+		if length("`condition'") != 0 local cond `condition'&REGION==9
+		else local cond if REGION==9
 		local pname Oceania
-		local coords Oceania_coords
+		local coords oceania_coords
 		local csize 3
 	}
 	else if "`place'"=="Africa"|"`place'"=="africa" {
-		local cond if REGION==2
+		if length("`condition'") != 0 local cond `condition'&REGION==2
+		else local cond if REGION==2
 		local pname Africa
 		local coords world_coords
 		local csize 2
 	}
 	else if "`place'"=="World"|"`place'"=="world" {
-		local cond
+		if length("`condition'") != 0 local cond `condition'
+		else local cond
 		local pname the world
 		local coords world_coords
 		local csize 1
 	}
 	else if "`place'"=="NSAmerica"|"`place'"=="nsamerica" {
-		local cond if REGION==19
+		if length("`condition'") != 0 local cond `condition'&REGION==19
+		else local cond if REGION==19
 		local pname North/ South America
 		local coords world_coords
 		local csize 2
 	}
 
-	//OPEN MAP DATA
+********************************************************************************
+*** OPEN MAP DATA (Checks if shape files installed on user's system, or if not
+*** installs from net.  From v2.1 onwards shape file should be on user's system)
+********************************************************************************
 	dis in yellow "Accessing shape file for `place' to create geographical visualisation"
-	webuse world_data, clear
-	qui save temp_map_data, replace
-	webuse `coords', clear
-	qui save temp_map_coordinates, replace
-
-
+	cap qui findfile worldstat.ado
+	local folder =regexr(r(fn),"worldstat.ado", "")
+	qui cap use "`folder'worldstatworld_data.dta"
+	if _rc == 0 {
+		local temp_map_data `folder'worldstatworld_data.dta
+		local temp_map_coordinates `folder'worldstat`coords'.dta
+	}
+	else if _rc != 0 {
+		dis "Accessing shape files for map output remotely"
+		webuse set "http://users.ox.ac.uk/~ball3491/"
+		webuse world_data, clear
+		qui save temp_map_data, replace
+		local temp_map_data temp_map_data
+		webuse `coords', clear
+		qui save temp_map_coordinates, replace	
+		local temp_map_coordinates temp_map_coordinates
+	}
 	
 ********************************************************************************
 *** INDICATOR DATA
 ********************************************************************************
 	//Opening WB Indicator Data
 	if "`stat'"=="GDP" {
-		local indic gdppckd
+		local indic NY.GDP.PCAP.KD
 		local indicator GDP p.c.
 	}
 	else if "`stat'"=="MMR" {
@@ -140,7 +162,7 @@ program define worldstat
 	}	
 	else if "`stat'"=="CO2" {
 		local indic EN.ATM.CO2E.PC
-		local indicator CO2 Emissions p. c.
+		local indicator CO2 Emissions p.c.
 	}	
 	else if "`stat'"=="MORT" {
 		local indic SH.DYN.MORT
@@ -157,10 +179,6 @@ program define worldstat
 	else if "`stat'"=="FDI" {
 		local indic BX.KLT.DINV.CD.WD
 		local indicator Foreign Direct Investment
-	}	
-	else if "`stat'"=="GDP2" {
-		local indic NY.GDP.PCAP.KD
-		local indicator GDP p.c.
 	}		
 	else if "`stat'"=="INF" {
 		local indic FP.CPI.TOTL.ZG
@@ -239,21 +257,23 @@ program define worldstat
 	if length(`"`cname'"') == 0 {
 		dis "Visualising data"
 		rename countryname country
-		qui merge m:m country using temp_map_data
+		qui merge m:m country using "`temp_map_data'"
+
+
 		if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica" {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5)) position(5)) ///
 			saving(worldstat_map, replace) nodraw
 			if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
 		}
 		else if "`place'"=="Europe"|"`place'"=="europe" {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5)) position(6)) ///
 			saving(worldstat_map, replace) nodraw
 			if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
 		}
 		else {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5))) ///
 			saving(worldstat_map, replace) nodraw
 			if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
@@ -262,23 +282,24 @@ program define worldstat
 	else if length(`"`cname'"') != 0 {
 		dis "Visualising data"
 		rename countryname country
-		qui merge m:m country using temp_map_data
+		qui merge m:m country using "`temp_map_data'"
+
 		if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica" {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5)) position(5)) ///
 			label(data("`temp_map_data'") select(keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
 			saving(worldstat_map, replace) nodraw
 			if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
 		}
 		else if "`place'"=="Europe"|"`place'"=="europe" {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5)) position(6)) ///
 			label(data("`temp_map_data'") select(keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
 			saving(worldstat_map, replace) nodraw
 			if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
 		}
 		else {
-			cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(Blues2) id(_ID) ///
+			cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
 			legend(title("`indicator', `year'", size(*0.5))) ///
 			label(data("`temp_map_data'") select(cap keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
 			saving(worldstat_map, replace) nodraw
@@ -371,8 +392,8 @@ program define worldstat
 	tab country
 	restore
 
-	cap rm temp_map_data.dta
 	cap rm temp_map_coordinates.dta
+	cap rm temp_map_data.dta
 	cap rm worldstat_trend_region.gph
 	cap rm worldstat_trend_combine.gph
 	cap rm worldstat_trend.gph
@@ -381,9 +402,8 @@ program define worldstat
 	di ""
 	di ""
 	di ""
-	di in smcl `"For a full list of indicators, see {browse "http://data.worldbank.org/indicator/all"}."'
-	
-	
+	di in smcl `"For a full list of indicators, see {browse "http://worldbank.270a.info/classification/indicator.html"}."'
+		
 	qui {
 		webuse set
 	}
