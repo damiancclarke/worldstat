@@ -12,15 +12,17 @@ set more off
 ********************************************************************************
 *** SYNTAX AND PRESERVE (IF NECESSARY)
 ********************************************************************************	
-syntax name(id="Region name" name=place), 	///
-stat(string)		 	///
-[                               ///
- year(numlist) 	                ///
- PREServe		        ///
- SName(string)	                ///
- CName			        ///
- MAPonly			///
- condition(string)              ///
+syntax name(id="Region name" name=place), ///
+stat(string)		 	          ///
+[                                         ///
+ year(numlist) 	                          ///
+ PREServe		                  ///
+ SName(string)	                          ///
+ CName			                  ///
+ MAPonly			          ///
+ fcolor(string)                           ///
+ condition(string)                        ///
+ *                                        ///
 ]
 
 if length("`preserve'") != 0 {
@@ -36,6 +38,8 @@ clear
 // Timing variables
 if length(`"`year'"') != 0 local year `year'
 else local year 2010
+
+if length(`"`fcolor'"') == 0 local fcolor Blues2
 
 ********************************************************************************
 *** CHECK FOR ado's
@@ -117,23 +121,13 @@ else if "`place'"=="NSAmerica"|"`place'"=="nsamerica" {
 *** installs from net.  From v2.1 onwards shape file should be on user's system)
 ********************************************************************************
 dis in yellow "Accessing shape file for `place' to create geographical visualisation"
-cap qui findfile worldstat.ado
-local folder =regexr(r(fn),"worldstat.ado", "")
-qui cap use "`folder'worldstatworld_data.dta"
-if _rc == 0 {
-    local temp_map_data `folder'worldstatworld_data.dta
-    local temp_map_coordinates `folder'worldstat`coords'.dta
-}
-else if _rc != 0 {
-    dis "Accessing shape files for map output remotely"
-    webuse set "http://damianclarke.net/stata/worldstat/"
-    webuse world_data, clear
-    qui save temp_map_data, replace
-    local temp_map_data temp_map_data
-    webuse `coords', clear
-    qui save temp_map_coordinates, replace	
-    local temp_map_coordinates temp_map_coordinates
-}
+dis "Accessing shape files for map output remotely"
+webuse set "http://damianclarke.net/stata/worldstat/"
+webuse world_data, clear
+qui save temp_map_data, replace
+webuse `coords', clear
+qui save temp_map_coordinates, replace	
+
 
 ********************************************************************************
 *** INDICATOR DATA
@@ -212,22 +206,21 @@ else if "`stat'"=="IMM" {
 	local indicator Immunization Rate (DPT)
 }		
 else {
-	if length(`"`sname'"') == 0 {
-		local indic `stat'
-		local indicator `stat'
-		local other yes
-	}
-		else if length(`"`sname'"') != 0 {
-		local indic `stat'
-		local indicator `sname'
-		local other yes
-	}
+    if length(`"`sname'"') == 0 {
+        local indic `stat'
+        local indicator `stat'
+        local other yes
+    }
+    else if length(`"`sname'"') != 0 {
+        local indic `stat'
+        local indicator `sname'
+        local other yes
+    }
 }
 
 
 dis "Importing `stat' from World Bank database"
 wbopendata, indicator(`indic') clear
-
 
 // Determining first and last year
 local minyr 1960
@@ -250,54 +243,67 @@ while _rc!=0 {
 **(A) MAP
 if length(`"`cname'"') == 0 {
     dis "Visualising data"
-    rename countryname country
-    qui merge m:m country using "`temp_map_data'"
+    local res "Respecify using an earlier year via the year option."
+    rename countrycode ISO3
+    qui merge 1:1 ISO3 using temp_map_data
     
-    
-    if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica" {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5)) position(5)) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+    if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica"|"`place'"=="South America" {
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond', id(_ID)
+        legend(title("`indicator', `year'", size(*0.5)) position(5)) fcolor(`fcolor') 
+        saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year.  `res'"
     }
     else if "`place'"=="Europe"|"`place'"=="europe" {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5)) position(6)) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond', id(_ID)
+        legend(title("`indicator', `year'", size(*0.5)) position(6)) fcolor(`fcolor') 
+        saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year.  `res'"
     }
     else {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5))) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond', id(_ID) 
+        legend(title("`indicator', `year'", size(*0.5))) fcolor(`fcolor') 
+        saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year.  `res'"
     }
 }
 else if length(`"`cname'"') != 0 {
     dis "Visualising data"
-    rename countryname country
-    qui merge m:m country using "`temp_map_data'"
+    local res "Respecify using an earlier year via the year option."
+    rename countrycode ISO3
+    qui merge 1:1 ISO3 using temp_map_data
     
     if "`place'"=="SAmerica"|"`place'"=="samerica"|"`place'"=="Samerica" {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5)) position(5)) ///
-        label(data("`temp_map_data'") select(keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(`fcolor') id(_ID) 
+        legend(title("`indicator', `year'", size(*0.5)) position(5)) 
+        label(data(temp_map_data) select(keep `cond') y(LAT) x(LON) label(NAME)
+              size(`csize')) saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year.  `res'"
     }
     else if "`place'"=="Europe"|"`place'"=="europe" {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5)) position(6)) ///
-        label(data("`temp_map_data'") select(keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond', fcolor(`fcolor') id(_ID) 
+        legend(title("`indicator', `year'", size(*0.5)) position(6)) 
+        label(data(temp_map_data) select(keep `cond') y(LAT) x(LON) label(NAME)
+              size(`csize')) saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year.  `res'"
     }
     else {
-        cap qui spmap yr`year' using "`temp_map_coordinates'" `cond', fcolor(Blues2) id(_ID) ///
-        legend(title("`indicator', `year'", size(*0.5))) ///
-        label(data("`temp_map_data'") select(cap keep `cond') y(LAT) x(LON) label(NAME) size(`csize')) ///
-        saving(worldstat_map, replace) nodraw
-        if _rc!=0 dis as error "No observations for this indicator in this year.  Respecify using an earlier year via the year option."
+        #delimit ;
+        cap qui spmap yr`year' using temp_map_coordinates `cond',
+        fcolor(`fcolor') id(_ID) legend(title("`indicator', `year'", size(*0.5)))
+        label(data(temp_map_data) select(cap keep `cond') y(LAT) x(LON)
+              label(NAME) size(`csize')) saving(worldstat_map, replace) nodraw `options';
+        #delimit cr
+        if _rc!=0 dis as error "No observations for this indicator in this year. `res'"
     }
 }
 
@@ -334,13 +340,15 @@ if length(`"`maponly'"') == 0 {
             }
             rename yr `stat'
             encode region, gen(region1)
-            qui twoway line `stat' year if region1==1 || line `stat' year if region1==2 || ///
-                       line `stat' year if region1==3|| line `stat' year if region1==4|| ///
-                       line `stat' year if region1==5|| line `stat' year if region1==6|| ///
-                       line `stat' year if region1==7, ytitle("`indicator'") ylabel(#2) ///
-            legend(lab(1 "East Asia") lab(2 "Europe") lab(3 "LAC") lab(4 "MENA") ///
-                   lab(5 "NA") lab(6 "Sth Asia") lab(7 "SSA") rowgap(1)) ///
-            saving(worldstat_trend_region, replace) nodraw
+            #delimit ;
+            qui twoway line `stat' year if region1==1 || line `stat' year if region1==2 ||
+                       line `stat' year if region1==3 || line `stat' year if region1==4 ||
+                       line `stat' year if region1==5 || line `stat' year if region1==6 ||
+                       line `stat' year if region1==7, ytitle("`indicator'") ylabel(#2) 
+            legend(lab(1 "East Asia") lab(2 "Europe") lab(3 "LAC") lab(4 "MENA") 
+                   lab(5 "NA") lab(6 "Sth Asia") lab(7 "SSA") rowgap(1)) 
+            saving(worldstat_trend_region, replace) nodraw;
+            #delimit cr
             restore
 
             qui graph combine worldstat_trend.gph worldstat_trend_region.gph, cols(2) ///
@@ -376,13 +384,8 @@ else if length(`"`maponly'"') != 0 {
 ********************************************************************************
 *** CLEAN UP
 ********************************************************************************
-preserve
-cap keep `cond'
-*tab country
-restore
-
-cap rm temp_map_coordinates.dta
 cap rm temp_map_data.dta
+cap rm temp_map_coordinates.dta
 cap rm worldstat_trend_region.gph
 cap rm worldstat_trend_combine.gph
 cap rm worldstat_trend.gph

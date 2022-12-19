@@ -47,6 +47,9 @@ stat({help worldstat##options:statistic_name}) [{it:options}]
 {synopt :{cmdab:cn:ame}}adds country names to the {help spmap:map} produced as output
 {p_end}
 {...}
+{synopt :*}Any other options permitted by {help spmap} will be passed to calls of spmap
+{p_end}
+{...}
 {synoptline}
 {p2colreset}
 
@@ -144,7 +147,7 @@ data, they must enter si.pov.gini as the {help worldstat##options:statistic_name
     {hline}
 {pstd}Visualise maternal mortality per capita for the entire world {p_end}
 
-{phang2}{cmd:. worldstat world, stat(FERT)}{p_end}
+{phang2}{cmd:. worldstat world, stat(FERT) fcolor(Pastel2)}{p_end}
 
     {hline}
 
@@ -176,7 +179,7 @@ Online:  {manhelp graph G}, {help wbopendata}, {help spmap},
 {title:Author}
 
 {pstd}
-Damian C. Clarke, The University of Oxford. {browse "mailto:damian.clarke@economics.ox.ac.uk":damian.clarke@economics.ox.ac.uk}
+Damian Clarke, University of Chile. {browse "mailto:dclarke@fen.uchile.cl":dclarke@fen.uchile.cl}
 {p_end}
 
 
